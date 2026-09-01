@@ -34,6 +34,7 @@ interface AppContextValue {
   currentAdmin: AdminAccount | null
   courses: Course[]
   refreshCourses: () => Promise<void>
+  refreshAll: () => Promise<void>
   enrollments: Enrollment[]
   certRequests: CertificateRequest[]
   signUp: (l: Omit<Learner, 'id'>) => Promise<{ ok: boolean; error?: string }>
@@ -161,6 +162,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const certRequests = DEMO_MODE
     ? demoState.certRequests.filter((c) => c.learnerId === currentUser?.id)
     : liveCertRequests
+
+  // Pull-to-refresh calls this: re-fetches whatever is relevant to whoever
+  // is signed in right now (course content plus, for a learner, their own
+  // enrollments/certificate requests). Demo mode has nothing to fetch --
+  // local state is already current by definition.
+  async function refreshAll() {
+    if (DEMO_MODE) return
+    const tasks: Promise<unknown>[] = [refreshCourses()]
+    if (currentUser) tasks.push(refreshLiveIdentity(currentUser.id))
+    await Promise.all(tasks)
+  }
 
   // ---------- Demo-mode helpers ----------
   function ensureDemoEnrollment(s: DemoState, courseId: string): Enrollment[] {
@@ -434,6 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         currentAdmin,
         courses,
         refreshCourses,
+        refreshAll,
         enrollments,
         certRequests,
         signUp,

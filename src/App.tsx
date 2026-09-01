@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import BottomNav from './components/BottomNav'
+import PullToRefresh from './components/PullToRefresh'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -19,7 +20,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import UpdateChecker from './components/UpdateChecker'
 
 function Protected({ children }: { children: React.ReactNode }) {
-  const { currentUser, currentAdmin, loading } = useApp()
+  const { currentUser, currentAdmin, loading, refreshAll } = useApp()
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa] text-gray-400 text-sm">
@@ -33,7 +34,7 @@ function Protected({ children }: { children: React.ReactNode }) {
   if (!currentUser) return <Navigate to="/login" replace />
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[#f5f7fa] relative">
-      {children}
+      <PullToRefresh onRefresh={refreshAll}>{children}</PullToRefresh>
       <BottomNav />
     </div>
   )
