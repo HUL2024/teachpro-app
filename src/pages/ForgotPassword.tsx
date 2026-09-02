@@ -37,9 +37,13 @@ export default function ForgotPassword() {
     }
 
     setSubmitting(true)
-    const matched = await api.verifyResetIdentity(phone, year)
+    const result = await api.verifyResetIdentity(phone, year)
     setSubmitting(false)
-    if (!matched) {
+    if (result === 'rate_limited') {
+      setError('Too many attempts. Please try again in 24 hours, or contact an administrator.')
+      return
+    }
+    if (result !== 'match') {
       setError("That phone number and year of birth don't match our records.")
       return
     }

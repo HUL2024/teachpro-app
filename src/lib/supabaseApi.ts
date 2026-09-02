@@ -134,27 +134,41 @@ export async function updateLearnerProfile(userId: string, patch: Partial<Learne
 
 // ---------- Forgot password (phone + birth year, no email/SMS needed) ----------
 
-export async function verifyResetIdentity(phone: string, birthYear: number): Promise<boolean> {
+export type ResetVerifyResult = 'match' | 'no_match' | 'rate_limited' | 'error'
+
+export async function verifyResetIdentity(
+  phone: string,
+  birthYear: number
+): Promise<ResetVerifyResult> {
   const { data, error } = await supabase!.rpc('verify_reset_identity', {
     p_phone: normalizePhoneDigits(phone),
     p_birth_year: birthYear,
   })
-  if (error) return false
-  return !!data
+  if (error) return 'error'
+  return (data as ResetVerifyResult) ?? 'error'
 }
 
 export async function resetLearnerPassword(
   phone: string,
   birthYear: number,
   newPassword: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; rateLimited?: boolean }> {
   const { data, error } = await supabase!.rpc('reset_learner_password', {
     p_phone: normalizePhoneDigits(phone),
     p_birth_year: birthYear,
     p_new_password: newPassword,
   })
   if (error) return { ok: false, error: error.message }
-  if (!data) return { ok: false, error: 'Phone number and year of birth do not match our records.' }
+  if (data === 'rate_limited') {
+    return {
+      ok: false,
+      rateLimited: true,
+      error: 'Too many attempts. Please try again in 24 hours, or contact an administrator.',
+    }
+  }
+  if (data !== 'success') {
+    return { ok: false, error: 'Phone number and year of birth do not match our records.' }
+  }
   return { ok: true }
 }
 
