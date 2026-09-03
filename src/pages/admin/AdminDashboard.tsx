@@ -5,6 +5,12 @@ import * as api from '../../lib/supabaseApi'
 import type { Course, Lesson } from '../../lib/types'
 import LessonContent from '../../components/LessonContent'
 import {
+  parseCourseImport,
+  COURSE_IMPORT_TEMPLATE,
+  type ParsedLesson,
+  type ParsedQuestion,
+} from '../../lib/courseImportParser'
+import {
   Users,
   BarChart3,
   Award,
@@ -18,6 +24,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  UploadCloud,
   ShieldCheck,
   CheckCircle2,
 } from 'lucide-react'
@@ -893,6 +900,35 @@ function CourseEditor({
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
   const [addingQuestion, setAddingQuestion] = useState(false)
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null)
+  const [showBulkImport, setShowBulkImport] = useState(false)
+
+  async function handleBulkImport(result: { lessons: ParsedLesson[]; finalAssessment: ParsedQuestion[] }) {
+    let nextLessonPosition = course.lessons.length + 1
+    for (const l of result.lessons) {
+      const created = await api.createLesson(course.id, nextLessonPosition, {
+        title: l.title,
+        content: l.content,
+        practicalExample: l.practicalExample,
+        videoUrl: l.videoUrl,
+        photos: l.photos,
+        resources: l.resources,
+      })
+      nextLessonPosition++
+      if (created.ok && created.id) {
+        let qPos = 1
+        for (const q of l.quizzes) {
+          await api.createLessonQuizQuestion(created.id, qPos, q)
+          qPos++
+        }
+      }
+    }
+    let nextFinalPosition = course.finalAssessment.length + 1
+    for (const q of result.finalAssessment) {
+      await api.createFinalQuestion(course.id, nextFinalPosition, q)
+      nextFinalPosition++
+    }
+    await onChanged()
+  }
 
   async function handleSaveDetails() {
     setSavingDetails(true)
@@ -1008,11 +1044,21 @@ function CourseEditor({
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-navy">Lessons ({course.lessons.length})</h3>
-          <button onClick={() => setAddingLesson(true)} className="flex items-center gap-1 text-xs text-brand-green font-semibold">
-            <Plus size={14} />
-            Add Lesson
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowBulkImport(true)} className="flex items-center gap-1 text-xs text-navy font-semibold">
+              <UploadCloud size={14} />
+              Bulk Import
+            </button>
+            <button onClick={() => setAddingLesson(true)} className="flex items-center gap-1 text-xs text-brand-green font-semibold">
+              <Plus size={14} />
+              Add Lesson
+            </button>
+          </div>
         </div>
+
+        {showBulkImport && (
+          <BulkImportPanel onCancel={() => setShowBulkImport(false)} onImport={handleBulkImport} />
+        )}
 
         {addingLesson && (
           <LessonForm
@@ -1116,6 +1162,122 @@ function CourseEditor({
 }
 
 // ---------------- Lesson editor (fields + its quiz question list) ----------------
+
+// ---------------- Bulk import panel ----------------
+
+function BulkImportPanel({
+  onCancel,
+  onImport,
+}: {
+  onCancel: () => void
+  onImport: (result: { lessons: ParsedLesson[]; finalAssessment: ParsedQuestion[] }) => Promise<void>
+}) {
+  const [text, setText] = useState('')
+  const [showTemplate, setShowTemplate] = useState(false)
+  const [preview, setPreview] = useState<ReturnType<typeof parseCourseImport> | null>(null)
+  const [importing, setImporting] = useState(false)
+
+  function handlePreview() {
+    setPreview(parseCourseImport(text))
+  }
+
+  async function handleConfirmImport() {
+    if (!preview || preview.errors.length > 0) return
+    setImporting(true)
+    await onImport(preview)
+    setImporting(false)
+    setText('')
+    setPreview(null)
+    onCancel()
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-3 max-w-2xl">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-semibold text-navy">Bulk Import Lessons</h4>
+        <button onClick={onCancel}>
+          <X size={18} className="text-gray-400" />
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-500 mb-2">
+        Draft a whole course in a text editor (Word, Notepad, anything), then paste it below.
+        This creates every lesson, quiz question, and final assessment question in one go.
+      </p>
+
+      <button
+        onClick={() => setShowTemplate((v) => !v)}
+        className="text-xs text-brand-green font-semibold mb-2"
+      >
+        {showTemplate ? 'Hide format example' : 'Show format example'}
+      </button>
+
+      {showTemplate && (
+        <pre className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-[10px] text-gray-600 whitespace-pre-wrap mb-3 max-h-64 overflow-y-auto">
+          {COURSE_IMPORT_TEMPLATE}
+        </pre>
+      )}
+
+      <textarea
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value)
+          setPreview(null)
+        }}
+        rows={10}
+        className="input font-mono text-xs"
+        placeholder="Paste your LESSON:/QUIZ:/FINAL ASSESSMENT: text here..."
+      />
+
+      {!preview && (
+        <button
+          onClick={handlePreview}
+          disabled={!text.trim()}
+          className="mt-3 w-full bg-navy text-white font-semibold py-2.5 rounded-lg text-sm disabled:opacity-40"
+        >
+          Preview Import
+        </button>
+      )}
+
+      {preview && preview.errors.length > 0 && (
+        <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+          <p className="text-xs font-semibold text-red-600 mb-1">Fix these before importing:</p>
+          <ul className="text-xs text-red-600 list-disc pl-4 space-y-0.5">
+            {preview.errors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {preview && preview.errors.length === 0 && (
+        <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+          <p className="text-xs text-green-800">
+            Ready to import: <strong>{preview.lessons.length}</strong> lesson
+            {preview.lessons.length === 1 ? '' : 's'} (
+            {preview.lessons.reduce((sum, l) => sum + l.quizzes.length, 0)} quiz questions total)
+            {preview.finalAssessment.length > 0 && (
+              <>
+                {' '}
+                and <strong>{preview.finalAssessment.length}</strong> final assessment question
+                {preview.finalAssessment.length === 1 ? '' : 's'}
+              </>
+            )}
+            .
+          </p>
+          <button
+            onClick={handleConfirmImport}
+            disabled={importing}
+            className="mt-2 w-full bg-brand-green text-white font-semibold py-2.5 rounded-lg text-sm disabled:opacity-50"
+          >
+            {importing ? 'Importing…' : 'Confirm Import'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 
 function LessonEditor({
   lesson,
