@@ -298,7 +298,45 @@ Three new screens, linked from the Profile page: `src/pages/About.tsx`,
 **placeholder text** — replace it with your organization's real, reviewed
 content before a public launch. None of this is legal advice.
 
-## 13. Where things live
+## 13. Running the Admin Dashboard on desktop, in a browser
+
+The Android APK is for learners on their phones. The Admin Dashboard, on
+the other hand, is built as a desktop layout and is meant to be opened in
+a real browser on a computer — separately from the APK build, and without
+touching `build-apk.yml` at all.
+
+**Deploy it to Vercel (free, auto-updates on every push):**
+
+1. Go to https://vercel.com and sign up using your GitHub account.
+2. Click **Add New → Project**, then find and import your `teachpro-app`
+   repository.
+3. Vercel auto-detects this as a Vite project — leave the build settings as
+   suggested (build command `npm run build`, output directory `dist`).
+4. Before deploying, add your Supabase credentials as environment
+   variables (Project Settings → Environment Variables), same as the
+   GitHub Actions secrets:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+5. Click **Deploy**. After a minute or two you'll get a public URL like
+   `https://teachpro-app.vercel.app`.
+6. Open that URL on a desktop browser, log in with a super admin or admin
+   account, and you'll land straight in the Admin Dashboard.
+
+From then on, **every `git push` automatically redeploys this site** —
+completely separate from the Android build. The two pipelines don't
+interact at all: pushing code updates both the next APK build *and* this
+website independently, with no shared configuration.
+
+The included `vercel.json` is what makes direct links like `/admin` or
+`/login` work correctly (without it, refreshing a page on a route other
+than the homepage would 404 on most static hosts).
+
+**Note:** this same URL also technically serves the learner-facing screens
+in a browser (useful for quick testing without installing the APK), but
+they're designed mobile-first — the Admin Dashboard is the part built
+specifically for this desktop use case.
+
+## 14. Where things live
 
 - `src/pages/` — every learner-facing screen (Login, Register, Dashboard,
   Courses, Lesson, Final Assessment, Certificates, My Learning, Profile)
@@ -325,8 +363,10 @@ content before a public launch. None of this is legal advice.
   don't hand-edit unless you know Android/Gradle)
 - `.github/workflows/build-apk.yml` — the free cloud APK builder, now also
   publishing public Releases on version tags
+- `vercel.json` — SPA routing config for the separate browser/desktop
+  deployment (see section 13)
 
-## 14. Certificates flow (per spec)
+## 15. Certificates flow (per spec)
 
 No online payment gateway and no certificate verification — matches your
 latest decision:
