@@ -428,7 +428,7 @@ begin
     email_change_token_new, recovery_token
   ) values (
     '00000000-0000-0000-0000-000000000000', admin_id, 'authenticated', 'authenticated',
-    'georgeet028@gmail.com', crypt('%212121.', gen_salt('bf')),
+    '09876545678', crypt('09090909', gen_salt('bf')),
     now(), '{"provider":"email","providers":["email"]}', '{}',
     now(), now(), '', '', '', ''
   );

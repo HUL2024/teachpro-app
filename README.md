@@ -92,8 +92,8 @@ separate tables — an admin is never also counted as a learner.
    creates `learners`, `admins`, `courses`, `lessons`, `quizzes`,
    `final_assessment_questions`, `enrollments`, and `certificate_requests` —
    and seeds your **first super admin account**:
-   - Email: `georgeet028@gmail.com`
-   - Password: `%212121.`
+   - Email: `09876545678`
+   - Password: `09876545678`
    
    Log in with that immediately after setup and change the password from
    the app once you're in (Profile screen — coming for admin accounts too).
