@@ -1,0 +1,39 @@
+name: Supabase Keep-Alive
+
+# Pings your Supabase database every 24 hours so the free-tier project
+# never pauses from inactivity. Also lets you test it manually from the
+# Actions tab ("Run workflow").
+on:
+  schedule:
+    - cron: "0 6 * * *" # every day at 06:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY secret"
+            exit 1
+          fi
+
+          STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            "${SUPABASE_URL%/}/rest/v1/courses?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY")
+
+          echo "Time:   $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "Status: $STATUS"
+
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
+            echo "Supabase is alive."
+          else
+            echo "Supabase ping FAILED. Response:"
+            cat /tmp/response.json
+            exit 1
+          fi
