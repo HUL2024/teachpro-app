@@ -1,6 +1,6 @@
 import type { Course, Enrollment } from './types'
 
-export const QUIZ_LOCK_HOURS = 24
+export const QUIZ_LOCK_HOURS = 3
 
 export interface QuizUnlockInfo {
   locked: boolean

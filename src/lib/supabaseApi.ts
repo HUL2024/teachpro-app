@@ -283,8 +283,10 @@ export async function submitFinalAssessmentRemote(
   const current = await ensureEnrollmentRow(learnerId, courseId)
   const passed = score >= 70
   const currentAttempts = current.failedAttempts || 0
-  const reset = !passed && currentAttempts + 1 >= 2
-  const attemptsLeft = passed ? 0 : reset ? 0 : Math.max(0, 2 - (currentAttempts + 1))
+  // Failing the final assessment never resets the course -- learners can
+  // retake it as many times as they need.
+  const reset = false
+  const attemptsLeft = 0
 
   if (passed) {
     await supabase!
@@ -293,20 +295,6 @@ export async function submitFinalAssessmentRemote(
         completed: true,
         completed_at: new Date().toISOString(),
         final_score: score,
-        failed_attempts: 0,
-      })
-      .eq('learner_id', learnerId)
-      .eq('course_id', courseId)
-  } else if (reset) {
-    await supabase!
-      .from('enrollments')
-      .update({
-        completed_lesson_ids: [],
-        lesson_completed_at: {},
-        quiz_scores: {},
-        final_score: null,
-        completed: false,
-        completed_at: null,
         failed_attempts: 0,
       })
       .eq('learner_id', learnerId)
