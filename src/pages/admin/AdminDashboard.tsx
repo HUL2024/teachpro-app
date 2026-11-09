@@ -15,6 +15,7 @@ import {
   BarChart3,
   Award,
   LogOut,
+  Menu,
   ArrowLeftCircle,
   ShieldPlus,
   Trash2,
@@ -54,6 +55,7 @@ const TAB_PERMISSION: Record<Tab, string> = {
 export default function AdminDashboard() {
   const { demoMode, currentAdmin, certRequests, courses, refreshCourses, logOut } = useApp()
   const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const isSuperAdmin = demoMode || currentAdmin?.role === 'super_admin'
   const permissions = demoMode
@@ -98,10 +100,33 @@ export default function AdminDashboard() {
     navigate('/login')
   }
 
+  // Admin accounts have no learner profile, so "teacher view" means signing
+  // out and logging in with a separate teacher account.
+  function handleSwitchToTeacher() {
+    logOut()
+    navigate('/login')
+  }
+
+  // On phones the menu covers the screen, so close it after a tab is picked.
+  function selectTab(t: Tab) {
+    setTab(t)
+    if (window.matchMedia('(max-width: 767px)').matches) setSidebarOpen(false)
+  }
+
   return (
     <div className="min-h-screen flex bg-[#f5f7fa]">
-      {/* ---------- Desktop sidebar ---------- */}
-      <aside className="w-64 shrink-0 bg-black text-white flex flex-col min-h-screen border-r-2 border-gold">
+      {/* ---------- Sidebar (slides over content on phones) ---------- */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-30 bg-black/50"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`${
+          sidebarOpen ? 'flex' : 'hidden'
+        } flex-col fixed md:static inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto bg-black text-white min-h-screen border-r-2 border-gold`}
+      >
         <div className="flex items-center gap-2 px-5 py-6">
           <ShieldCheck size={22} className="text-gold" />
           <div>
@@ -117,7 +142,7 @@ export default function AdminDashboard() {
             return (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                onClick={() => selectTab(t)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${
                   active ? 'bg-gold/15 text-gold' : 'text-gray-300 hover:bg-white/5'
                 }`}
@@ -143,11 +168,11 @@ export default function AdminDashboard() {
             </p>
           )}
           <button
-            onClick={() => navigate('/')}
+            onClick={handleSwitchToTeacher}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/5"
           >
             <ArrowLeftCircle size={16} />
-            Teacher View
+            Switch to teacher account
           </button>
           <button
             onClick={handleLogout}
@@ -161,7 +186,14 @@ export default function AdminDashboard() {
 
       {/* ---------- Main content ---------- */}
       <main className="flex-1 min-h-screen">
-        <header className="bg-white border-b border-gray-200 px-8 py-5">
+        <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-5 flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen((o) => !o)}
+            aria-label="Toggle menu"
+            className="p-2 -ml-2 rounded-lg text-navy hover:bg-gray-100"
+          >
+            <Menu size={22} />
+          </button>
           <h1 className="text-lg font-bold text-navy">{TAB_META[tab].label}</h1>
         </header>
         <div className="max-w-5xl px-8 py-6">
