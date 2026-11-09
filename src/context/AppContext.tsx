@@ -354,8 +354,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const passed = score >= 70
     const existing = enrollments.find((e) => e.courseId === courseId)
     const currentAttempts = existing?.failedAttempts || 0
-    const reset = !passed && currentAttempts + 1 >= 2
-    const attemptsLeft = passed ? 0 : reset ? 0 : Math.max(0, 2 - (currentAttempts + 1))
+    // Failing never resets the course -- unlimited retakes.
+    const reset = false
+    const attemptsLeft = 0
 
     setDemoState((s) => {
       const list = ensureDemoEnrollment(s, courseId)
@@ -367,19 +368,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             completed: true,
             completedAt: new Date().toISOString(),
             finalScore: score,
-            failedAttempts: 0,
-          }
-        }
-        if (reset) {
-          return {
-            courseId,
-            enrolledAt: e.enrolledAt,
-            completedLessonIds: [],
-            lessonCompletedAt: {},
-            quizScores: {},
-            finalScore: null,
-            completed: false,
-            completedAt: null,
             failedAttempts: 0,
           }
         }
