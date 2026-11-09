@@ -26,7 +26,7 @@ export default function Terms() {
           <h3 className="font-semibold text-navy mb-1">2. Course access</h3>
           <p>
             All courses on TeachPro are provided free of charge. Lessons and their quizzes unlock
-            in order, and a lesson's quiz becomes available 24 hours after finishing the previous
+            in order, and a lesson's quiz becomes available 3 hours after finishing the previous
             lesson — this pacing is intentional and applies to every learner equally.
           </p>
         </div>

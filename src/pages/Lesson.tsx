@@ -29,6 +29,13 @@ export default function Lesson() {
     setSessionScore(null)
   }, [lessonId])
 
+  // Always start at the top (question 1) when the quiz opens or shows its
+  // result -- otherwise the page stays scrolled down to where the
+  // "Take Quiz" button was, so the learner lands on the last question.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [mode, submitted])
+
   // Re-render every minute so the "Quiz unlocks in Xh Ym" countdown stays
   // fresh without needing a full page reload.
   const [, forceTick] = useState(0)

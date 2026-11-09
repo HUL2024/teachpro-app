@@ -58,8 +58,8 @@ export default function FinalAssessment() {
           <>
             <p className="text-sm text-gray-500 mb-4">
               Answer all questions below. You need 70% or higher to pass and unlock your
-              certificate eligibility. You have up to 2 attempts — failing twice resets this
-              course's progress and you'll need to redo the lessons.
+              certificate eligibility. You can retake it as many times as you need — failing never
+              resets your course progress.
             </p>
             <div className="space-y-4">
               {questions.map((q, qi) => (
@@ -115,8 +115,8 @@ export default function FinalAssessment() {
 
             {!result.passed && !result.reset && (
               <p className="text-sm text-gray-500 mt-1">
-                You need 70% to pass. You have {result.attemptsLeft} attempt
-                {result.attemptsLeft === 1 ? '' : 's'} left before the course resets.
+                You need 70% to pass. Review the lessons if you like, then try again — you can
+                retake the assessment as many times as you need.
               </p>
             )}
 
