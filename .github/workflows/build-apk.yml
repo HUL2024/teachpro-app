@@ -41,9 +41,25 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
-      - name: Build debug APK
+      - name: Build debug APK (retries on slow downloads)
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: |
+          # The default 10-second download timeout is too short for GitHub's
+          # servers on a bad day, so give Gradle's download two minutes.
+          sed -i 's/^networkTimeout=.*/networkTimeout=120000/' gradle/wrapper/gradle-wrapper.properties
+
+          for attempt in 1 2 3; do
+            echo "Build attempt $attempt of 3"
+            if ./gradlew assembleDebug; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Build failed, retrying in 30 seconds..."
+              sleep 30
+            fi
+          done
+          echo "Build failed after 3 attempts"
+          exit 1
 
       - name: Upload APK (build artifact, requires GitHub login to download)
         uses: actions/upload-artifact@v4
