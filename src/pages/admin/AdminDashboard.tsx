@@ -55,7 +55,8 @@ const TAB_PERMISSION: Record<Tab, string> = {
 export default function AdminDashboard() {
   const { demoMode, currentAdmin, certRequests, courses, refreshCourses, logOut } = useApp()
   const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  // Closed by default on phones (the menu covers the screen); open on wide screens.
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches)
 
   const isSuperAdmin = demoMode || currentAdmin?.role === 'super_admin'
   const permissions = demoMode
@@ -125,13 +126,13 @@ export default function AdminDashboard() {
       <aside
         className={`${
           sidebarOpen ? 'flex' : 'hidden'
-        } flex-col fixed md:static inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto bg-black text-white min-h-screen border-r-2 border-gold`}
+        } flex-col fixed md:static inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto bg-brand-green text-white md:min-h-screen border-r-2 border-brand-green-light`}
       >
         <div className="flex items-center gap-2 px-5 py-6">
-          <ShieldCheck size={22} className="text-gold" />
+          <ShieldCheck size={22} className="text-white" />
           <div>
             <p className="font-bold leading-tight">TeachPro</p>
-            <p className="text-[10px] tracking-widest text-gold">ADMIN</p>
+            <p className="text-[10px] tracking-widest text-white/80">ADMIN</p>
           </div>
         </div>
 
@@ -144,7 +145,7 @@ export default function AdminDashboard() {
                 key={t}
                 onClick={() => selectTab(t)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${
-                  active ? 'bg-gold/15 text-gold' : 'text-gray-300 hover:bg-white/5'
+                  active ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10'
                 }`}
               >
                 <span className="flex items-center gap-3">
@@ -161,22 +162,22 @@ export default function AdminDashboard() {
           })}
         </nav>
 
-        <div className="px-3 pb-5 space-y-1 border-t border-white/10 pt-4">
+        <div className="px-3 pb-5 space-y-1 border-t border-white/20 pt-4">
           {currentAdmin && (
-            <p className="px-3 text-xs text-gray-400 mb-2 truncate">
+            <p className="px-3 text-xs text-white/70 mb-2 truncate">
               {currentAdmin.fullName} · {currentAdmin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
             </p>
           )}
           <button
             onClick={handleSwitchToTeacher}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/5"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/90 hover:bg-white/10"
           >
             <ArrowLeftCircle size={16} />
             Switch to teacher account
           </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-white/5"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/90 hover:bg-white/10"
           >
             <LogOut size={16} />
             Log Out
