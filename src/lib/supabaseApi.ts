@@ -190,13 +190,45 @@ export async function uploadAvatar(userId: string, blob: Blob): Promise<{ ok: bo
 
 // ---------- Enrollments / certificates (learner-facing) ----------
 
+// The enrollments.quiz_scores JSON column holds the numeric score per lesson
+// ({ "lesson-id": 80 }). To keep each learner's chosen answers without a
+// database change, they're stored in the same column under "<lesson-id>:answers".
+const ANSWERS_SUFFIX = ':answers'
+
+function unpackQuizScores(raw: any): {
+  scores: Record<string, number>
+  answers: Record<string, Record<string, number>>
+} {
+  const scores: Record<string, number> = {}
+  const answers: Record<string, Record<string, number>> = {}
+  for (const [k, v] of Object.entries(raw || {})) {
+    if (k.endsWith(ANSWERS_SUFFIX)) {
+      if (v && typeof v === 'object') answers[k.slice(0, -ANSWERS_SUFFIX.length)] = v as any
+    } else if (typeof v === 'number') {
+      scores[k] = v
+    }
+  }
+  return { scores, answers }
+}
+
+function packQuizScores(
+  scores: Record<string, number>,
+  answers: Record<string, Record<string, number>>
+) {
+  const out: Record<string, any> = { ...scores }
+  for (const [lessonId, a] of Object.entries(answers)) out[lessonId + ANSWERS_SUFFIX] = a
+  return out
+}
+
 function rowToEnrollment(row: any): Enrollment {
+  const { scores, answers } = unpackQuizScores(row.quiz_scores)
   return {
     courseId: row.course_id,
     enrolledAt: row.enrolled_at,
     completedLessonIds: row.completed_lesson_ids || [],
     lessonCompletedAt: row.lesson_completed_at || {},
-    quizScores: row.quiz_scores || {},
+    quizScores: scores,
+    quizAnswers: answers,
     finalScore: row.final_score,
     completed: row.completed,
     completedAt: row.completed_at,
@@ -264,13 +296,16 @@ export async function recordQuizScoreRemote(
   learnerId: string,
   courseId: string,
   key: string,
-  score: number
+  score: number,
+  answers?: Record<string, number>
 ) {
   const current = await ensureEnrollmentRow(learnerId, courseId)
-  const updated = { ...current.quizScores, [key]: score }
+  const scores = { ...current.quizScores, [key]: score }
+  const allAnswers = { ...(current.quizAnswers || {}) }
+  if (answers) allAnswers[key] = answers
   await supabase!
     .from('enrollments')
-    .update({ quiz_scores: updated })
+    .update({ quiz_scores: packQuizScores(scores, allAnswers) })
     .eq('learner_id', learnerId)
     .eq('course_id', courseId)
 }
