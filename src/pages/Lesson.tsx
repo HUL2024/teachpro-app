@@ -74,7 +74,7 @@ export default function Lesson() {
   function handleSubmitQuiz() {
     const correctCount = lesson!.quizzes.filter((q) => answers[q.id] === q.correctIndex).length
     const score = Math.round((correctCount / lesson!.quizzes.length) * 100)
-    recordQuizScore(course!.id, lesson!.id, score)
+    recordQuizScore(course!.id, lesson!.id, score, answers)
     setSessionScore(score)
     setSubmitted(true)
   }

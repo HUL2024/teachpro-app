@@ -4,13 +4,25 @@ import TopBar from '../components/TopBar'
 import LessonContent from '../components/LessonContent'
 import { useApp } from '../context/AppContext'
 import { quizUnlockInfo, formatTimeRemaining } from '../lib/lessonLock'
-import { CheckCircle2, Circle, PartyPopper, ClipboardCheck, Lock, Clock } from 'lucide-react'
+import {
+  CheckCircle2,
+  Circle,
+  PartyPopper,
+  ClipboardCheck,
+  Lock,
+  Clock,
+  ChevronDown,
+  XCircle,
+} from 'lucide-react'
 
 export default function CourseDetail() {
   const { courseId } = useParams()
   const navigate = useNavigate()
   const { enrollments, enroll, courses } = useApp()
   const course = courses.find((c) => c.id === courseId)
+
+  // Which lesson's quiz review is expanded under "Your Scores".
+  const [reviewLessonId, setReviewLessonId] = useState<string | null>(null)
 
   // Re-render every minute so a "Unlocks in 3h 59m" countdown stays fresh
   // without needing a full page reload.
@@ -144,19 +156,112 @@ export default function CourseDetail() {
                 .filter((l) => l.quizzes.length > 0)
                 .map((l) => {
                   const s = enrollment?.quizScores[l.id]
+                  // A passed quiz can't be retaken, so it's safe to open a
+                  // review of it. A failed one can still be retaken, so its
+                  // answers stay hidden.
+                  const canReview = s !== undefined && s >= 70
+                  const open = reviewLessonId === l.id
+                  const answers = enrollment?.quizAnswers?.[l.id]
+                  const correctCount = answers
+                    ? l.quizzes.filter((q) => answers[q.id] === q.correctIndex).length
+                    : 0
                   return (
-                    <div key={l.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                      <span className="text-gray-600 truncate pr-2">{l.title}</span>
-                      {s === undefined ? (
-                        <span className="text-xs text-gray-300 shrink-0">Not attempted</span>
-                      ) : (
-                        <span
-                          className={`text-xs font-semibold shrink-0 ${
-                            s >= 70 ? 'text-brand-green' : 'text-red-500'
-                          }`}
-                        >
-                          {s}%
-                        </span>
+                    <div key={l.id}>
+                      <button
+                        type="button"
+                        disabled={!canReview}
+                        onClick={() => setReviewLessonId(open ? null : l.id)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left"
+                      >
+                        <span className="text-gray-600 truncate pr-2">{l.title}</span>
+                        {s === undefined ? (
+                          <span className="text-xs text-gray-300 shrink-0">Not attempted</span>
+                        ) : (
+                          <span className="flex items-center gap-1 shrink-0">
+                            <span
+                              className={`text-xs font-semibold ${
+                                s >= 70 ? 'text-brand-green' : 'text-red-500'
+                              }`}
+                            >
+                              {s}%
+                            </span>
+                            {canReview && (
+                              <ChevronDown
+                                size={14}
+                                className={`text-gray-400 transition-transform ${
+                                  open ? 'rotate-180' : ''
+                                }`}
+                              />
+                            )}
+                          </span>
+                        )}
+                      </button>
+
+                      {canReview && open && (
+                        <div className="px-4 pb-4 space-y-3 bg-gray-50/60">
+                          {!answers ? (
+                            <p className="text-xs text-gray-500 pt-3">
+                              Question-by-question details are only saved for quizzes taken
+                              after this feature was added.
+                            </p>
+                          ) : (
+                            <>
+                              <p className="text-xs text-gray-500 pt-3">
+                                You got {correctCount} of {l.quizzes.length} correct.
+                              </p>
+                              {l.quizzes.map((q, qi) => {
+                                const chosen = answers[q.id]
+                                if (chosen === undefined) return null
+                                const right = chosen === q.correctIndex
+                                return (
+                                  <div
+                                    key={q.id}
+                                    className="bg-white rounded-xl border border-gray-100 p-3"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      {right ? (
+                                        <CheckCircle2
+                                          size={16}
+                                          className="text-brand-green shrink-0 mt-0.5"
+                                        />
+                                      ) : (
+                                        <XCircle
+                                          size={16}
+                                          className="text-red-500 shrink-0 mt-0.5"
+                                        />
+                                      )}
+                                      <p className="text-sm text-navy">
+                                        {qi + 1}. {q.question}
+                                      </p>
+                                    </div>
+                                    {right ? (
+                                      <p className="text-xs text-brand-green font-semibold mt-1.5 ml-6">
+                                        Correct
+                                      </p>
+                                    ) : (
+                                      <div className="mt-2 ml-6 space-y-1.5 text-xs">
+                                        <p className="text-red-500">
+                                          <span className="font-semibold">Your answer: </span>
+                                          {q.options[chosen]}
+                                        </p>
+                                        <p className="text-brand-green">
+                                          <span className="font-semibold">Correct answer: </span>
+                                          {q.options[q.correctIndex]}
+                                        </p>
+                                        {q.explanation?.trim() && (
+                                          <p className="text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-2">
+                                            <span className="font-semibold">Tip: </span>
+                                            {q.explanation}
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   )
