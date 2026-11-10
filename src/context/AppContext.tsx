@@ -44,7 +44,12 @@ interface AppContextValue {
   uploadAvatar: (file: File) => Promise<{ ok: boolean; error?: string }>
   enroll: (courseId: string) => void
   markLessonComplete: (courseId: string, lessonId: string) => void
-  recordQuizScore: (courseId: string, key: string, score: number) => void
+  recordQuizScore: (
+    courseId: string,
+    key: string,
+    score: number,
+    answers?: Record<string, number>
+  ) => void
   submitFinalAssessment: (
     courseId: string,
     score: number
@@ -322,18 +327,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  function recordQuizScore(courseId: string, key: string, score: number) {
+  function recordQuizScore(
+    courseId: string,
+    key: string,
+    score: number,
+    answers?: Record<string, number>
+  ) {
     if (!currentUser) return
     if (!DEMO_MODE) {
       api
-        .recordQuizScoreRemote(currentUser.id, courseId, key, score)
+        .recordQuizScoreRemote(currentUser.id, courseId, key, score, answers)
         .then(() => refreshLiveIdentity(currentUser.id))
       return
     }
     setDemoState((s) => {
       const list = ensureDemoEnrollment(s, courseId)
       const updatedList = list.map((e) =>
-        e.courseId === courseId ? { ...e, quizScores: { ...e.quizScores, [key]: score } } : e
+        e.courseId === courseId
+          ? {
+              ...e,
+              quizScores: { ...e.quizScores, [key]: score },
+              quizAnswers: answers
+                ? { ...(e.quizAnswers || {}), [key]: answers }
+                : e.quizAnswers,
+            }
+          : e
       )
       return { ...s, enrollments: { ...s.enrollments, [currentUser.id]: updatedList } }
     })
